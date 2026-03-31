@@ -1,0 +1,34 @@
+# Source of truth for the whole lab. Everything else (FRR configs, docker-compose links, tests) is generated from this file.
+#
+#            isp1 (AS 65100)                 isp2 (AS 65200)
+#              |  203.0.113.0/29               |  198.51.100.0/29
+#            [r1] ---------- 10.0.12.0/29 ---- [r2]
+#             |  \                              |
+#     10.0.13.0/29  \ 10.0.14.0/29       10.0.24.0/29
+#             |        \                        |
+#            [r3] ---------- 10.0.34.0/29 ---- [r4]
+#
+# r1-r4: AS 65000, OSPF area 0 backbone, iBGP full mesh on loopbacks.
+# r1 peers eBGP with isp1, r4 with isp2. isp1 is preferred for outbound (local-preference 200).
+# Only the 10.0.0.0/16 aggregate is advertised outbound; bogons and our own aggregate are rejected inbound.
+
+asn: 65000
+aggregate: 10.0.0.0/16
+preferred_isp: isp1
+
+links:
+  - {name: l12, subnet: 10.0.12.0/29, a: [r1, 10.0.12.1], b: [r2, 10.0.12.2], cost: 10}
+  - {name: l13, subnet: 10.0.13.0/29, a: [r1, 10.0.13.1], b: [r3, 10.0.13.2], cost: 10}
+  - {name: l14, subnet: 10.0.14.0/29, a: [r1, 10.0.14.1], b: [r4, 10.0.14.2], cost: 50}   # diagonal, deliberately expensive
+  - {name: l24, subnet: 10.0.24.0/29, a: [r2, 10.0.24.1], b: [r4, 10.0.24.2], cost: 10}
+  - {name: l34, subnet: 10.0.34.0/29, a: [r3, 10.0.34.1], b: [r4, 10.0.34.2], cost: 10}
+  - {name: x1,  subnet: 203.0.113.0/29, a: [r1, 203.0.113.2], b: [isp1, 203.0.113.1]}
+  - {name: x2,  subnet: 198.51.100.0/29, a: [r4, 198.51.100.2], b: [isp2, 198.51.100.1]}
+
+routers:
+  r1: {loopback: 10.0.255.1, role: edge, asn: 65000, ebgp: {peer: isp1, peer_asn: 65100, peer_ip: 203.0.113.1}}
+  r2: {loopback: 10.0.255.2, role: core, asn: 65000}
+  r3: {loopback: 10.0.255.3, role: core, asn: 65000}
+  r4: {loopback: 10.0.255.4, role: edge, asn: 65000, ebgp: {peer: isp2, peer_asn: 65200, peer_ip: 198.51.100.1}}
+  isp1: {loopback: 203.0.113.254, role: isp, asn: 65100, advertise: [100.64.1.0/24, 100.64.2.0/24, 100.64.100.0/24], customer: r1, customer_ip: 203.0.113.2}
+  isp2: {loopback: 198.51.100.254, role: isp, asn: 65200, advertise: [100.64.1.0/24, 100.64.2.0/24, 100.64.200.0/24], customer: r4, customer_ip: 198.51.100.2}
