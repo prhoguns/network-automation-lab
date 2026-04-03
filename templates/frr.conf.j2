@@ -1,0 +1,99 @@
+! {{ name }} — generated from inventory/topology.yml, do not edit by hand
+frr version 10.1
+frr defaults traditional
+hostname {{ name }}
+log stdout
+!
+interface lo
+ ip address {{ r.loopback }}/32
+!
+{% if r.role != 'isp' %}
+router ospf
+ ospf router-id {{ r.loopback }}
+ network {{ r.loopback }}/32 area 0
+{% for l in links if l.router == name and l.internal %}
+ network {{ l.subnet }} area 0
+{% endfor %}
+{% for l in links if l.router == name and l.internal and l.cost %}
+!
+{% endfor %}
+!
+{% endif %}
+{% if r.role == 'isp' %}
+ip prefix-list CUSTOMER-IN seq 10 permit {{ aggregate }}
+ip prefix-list CUSTOMER-IN seq 100 deny 0.0.0.0/0 le 32
+route-map FROM-CUSTOMER permit 10
+ match ip address prefix-list CUSTOMER-IN
+!
+router bgp {{ r.asn }}
+ bgp router-id {{ r.loopback }}
+ no bgp ebgp-requires-policy
+ neighbor {{ r.customer_ip }} remote-as {{ asn }}
+ neighbor {{ r.customer_ip }} description customer-{{ r.customer }}
+ neighbor {{ r.customer_ip }} timers connect 10
+ address-family ipv4 unicast
+  network {{ r.loopback }}/32
+{% for p in r.advertise %}
+  network {{ p }}
+{% endfor %}
+  neighbor {{ r.customer_ip }} route-map FROM-CUSTOMER in
+ exit-address-family
+!
+{% for p in r.advertise %}
+ip route {{ p }} Null0
+{% endfor %}
+{% else %}
+ip prefix-list BOGONS seq 10 permit 0.0.0.0/8 le 32
+ip prefix-list BOGONS seq 20 permit 10.0.0.0/8 le 32
+ip prefix-list BOGONS seq 30 permit 127.0.0.0/8 le 32
+ip prefix-list BOGONS seq 40 permit 169.254.0.0/16 le 32
+ip prefix-list BOGONS seq 50 permit 172.16.0.0/12 le 32
+ip prefix-list BOGONS seq 60 permit 192.168.0.0/16 le 32
+ip prefix-list BOGONS seq 70 permit 224.0.0.0/3 le 32
+ip prefix-list OUR-AGGREGATE seq 10 permit {{ aggregate }}
+!
+route-map ISP-IN deny 10
+ match ip address prefix-list BOGONS
+route-map ISP-IN deny 20
+ match ip address prefix-list OUR-AGGREGATE
+route-map ISP-IN permit 30
+{% if r.ebgp and r.ebgp.peer == preferred_isp %}
+ set local-preference 200
+{% else %}
+ set local-preference 100
+{% endif %}
+!
+route-map ISP-OUT permit 10
+ match ip address prefix-list OUR-AGGREGATE
+route-map ISP-OUT deny 20
+!
+router bgp {{ r.asn }}
+ bgp router-id {{ r.loopback }}
+ no bgp ebgp-requires-policy
+ bgp log-neighbor-changes
+{% for peer, pr in routers.items() if peer != name and pr.role != 'isp' %}
+ neighbor {{ pr.loopback }} remote-as {{ asn }}
+ neighbor {{ pr.loopback }} update-source {{ r.loopback }}
+ neighbor {{ pr.loopback }} description ibgp-{{ peer }}
+ neighbor {{ pr.loopback }} timers connect 10
+{% endfor %}
+{% if r.ebgp %}
+ neighbor {{ r.ebgp.peer_ip }} remote-as {{ r.ebgp.peer_asn }}
+ neighbor {{ r.ebgp.peer_ip }} description ebgp-{{ r.ebgp.peer }}
+ neighbor {{ r.ebgp.peer_ip }} timers connect 10
+{% endif %}
+ address-family ipv4 unicast
+  aggregate-address {{ aggregate }} summary-only
+  network {{ r.loopback }}/32
+{% for peer, pr in routers.items() if peer != name and pr.role != 'isp' %}
+  neighbor {{ pr.loopback }} next-hop-self
+{% endfor %}
+{% if r.ebgp %}
+  neighbor {{ r.ebgp.peer_ip }} route-map ISP-IN in
+  neighbor {{ r.ebgp.peer_ip }} route-map ISP-OUT out
+{% endif %}
+ exit-address-family
+!
+{% endif %}
+line vty
+!
