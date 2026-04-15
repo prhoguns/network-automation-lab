@@ -1,0 +1,25 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  lab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements.txt
+      - run: ruff check scripts tests
+      - name: Render and check for drift
+        run: python scripts/render.py && git diff --exit-code -- configs docker-compose.yml
+      - name: Boot the topology
+        run: docker compose up -d
+      - name: Wait for convergence
+        run: |
+          for i in $(seq 1 30); do
+            est=$(docker exec r2 vtysh -c 'show bgp summary json' 2>/dev/null | grep -c '"state":"Established"' || true)
+            [ "$est" -ge 3 ] && break; sleep 5
+          done
+          docker exec r2 vtysh -c 'show bgp summary'
+      - run: pytest -v
+      - if: always()
+        run: docker compose logs --tail 20
