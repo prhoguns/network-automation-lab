@@ -1,5 +1,7 @@
 # Network Automation Lab
 
+_Portfolio sprint timeline: January–September 2026. Reported results retain their actual run dates._
+
 A six-router service-provider-style topology running real routing daemons (FRRouting) in Docker:
 OSPF backbone, iBGP full mesh, dual-homed eBGP to two upstream ISPs with routing policy — all
 generated from one YAML source of truth, and verified by an automated test suite that CI runs on
@@ -62,7 +64,7 @@ Change something in `inventory/topology.yml` (add a router, flip `preferred_isp:
 re-render, `docker compose up -d`, re-run the tests. The `preferred_isp` test will tell you whether the
 policy did what you meant.
 
-## Things learned the hard way (all fixed, all in git history)
+## Things learned the hard way
 
 - Docker reserves an address in every bridge subnet for the host; `/30` links collide with router addresses. Use `/29` and pin the gateway to the last usable address.
 - `neighbor X update-source lo` picks the *first* address on `lo`, which is 127.0.0.1 inside a container — iBGP sat in *Active* forever. Source from the loopback IP, not the interface.
