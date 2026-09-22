@@ -78,3 +78,7 @@ policy did what you meant.
 - IPv6 dual-stack from the same inventory.
 - Replace `docker exec vtysh` with NAPALM/Netmiko over SSH so the same tests run against real Cisco/Juniper boxes.
 - BGP communities from the ISPs and a `no-export` policy.
+
+## Acknowledgments
+
+AI tools assisted with documentation and repository organization.
