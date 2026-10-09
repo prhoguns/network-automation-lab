@@ -35,6 +35,7 @@ def ping(src: str, dst: str, count: int = 2) -> bool:
         ["docker", "exec", src, "ping", "-c", str(count), "-W", "1", dst],
         capture_output=True,
         text=True,
+        check=False,
     )
     return r.returncode == 0
 

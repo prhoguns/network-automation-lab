@@ -33,7 +33,7 @@ def test_every_router_config_parses_in_frr():
                 "--rm",
                 "-v",
                 f"{HOST_ROOT / cfg.parent.relative_to(ROOT)}:/etc/frr:ro",
-                "quay.io/frrouting/frr:10.1.1",
+                "quay.io/frrouting/frr:10.7.1",
                 "vtysh",
                 "--dryrun",
                 "-f",
@@ -41,5 +41,6 @@ def test_every_router_config_parses_in_frr():
             ],
             capture_output=True,
             text=True,
+            check=False,
         )
         assert r.returncode == 0, f"{cfg}: {r.stderr or r.stdout}"

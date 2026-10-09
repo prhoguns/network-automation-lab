@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import ipaddress
+from pathlib import Path
 
 import yaml
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 ROOT = Path(__file__).resolve().parents[1]
-FRR_IMAGE = "quay.io/frrouting/frr:10.1.1"
+FRR_IMAGE = "quay.io/frrouting/frr:10.7.1"
 
 
 def load_topology() -> dict:

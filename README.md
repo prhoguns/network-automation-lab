@@ -20,7 +20,7 @@ every push by actually booting the network.
    r1 ⇄ isp1, r4 ⇄ isp2: eBGP · isp1 preferred outbound (local-preference 200)
 ```
 
-**Stack:** FRRouting 10.1 (OSPFv2, BGP-4) · Docker Compose · Python (PyYAML, Jinja2) · pytest
+**Stack:** FRRouting 10.7 (OSPFv2, BGP-4) · Docker Compose · Python (PyYAML, Jinja2) · pytest
 
 ## What is automated
 
